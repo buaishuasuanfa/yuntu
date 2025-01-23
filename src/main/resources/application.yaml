@@ -22,6 +22,14 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+# 阿里 OSS对象存储服务
+oss:
+  client:
+    region: ${server.oss.region}
+    endpoint: ${server.oss.endpoint}
+    bucketName: ${server.oss.bucketName}
+    access-key-id: ${server.oss.access-key-id}
+    access-key-secret: ${server.oss.access-key-secret}
 # 接口文档配置
 knife4j:
   enable: true
