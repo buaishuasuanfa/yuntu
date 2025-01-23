@@ -79,4 +79,11 @@ public interface IUserService extends IService<User> {
      * @return
      */
     QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
+
+    /**
+     * 新增用户
+     * @param user
+     * @return
+     */
+    boolean addUser(User user);
 }

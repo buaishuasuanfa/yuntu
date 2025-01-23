@@ -42,10 +42,11 @@ import static com.ljw.yuntubackend.constant.UserConstant.USER_LOGIN_STATE;
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
+    private final String DEFAULT_AVATAR = "https://ljw-bucket.oss-cn-hangzhou.aliyuncs.com/avatar/1881171093897687041/1881171093897687041.png";
+    private final String NAME_PREFIX = "USER_";
+
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
-        String DEFAULT_AVATAR = "https://ljw-bucket.oss-cn-hangzhou.aliyuncs.com/avatar/1881171093897687041/1881171093897687041.png";
-        String NAME_PREFIX = "USER_";
 
         // 1. 校验
         if (StrUtil.hasBlank(userAccount, userPassword, checkPassword)) {
@@ -166,6 +167,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         return queryWrapper;
     }
 
+    @Override
+    public boolean addUser(User user) {
+        if (user.getUserName() == null){
+            user.setUserName(NAME_PREFIX + user.getUserAccount());
+        }
+        if (user.getUserAvatar() == null){
+            user.setUserAvatar(DEFAULT_AVATAR);
+        }
+        return this.saveOrUpdate(user);
+    }
 
 
 }
