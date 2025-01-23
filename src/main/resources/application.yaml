@@ -3,21 +3,22 @@ server:
   servlet:
     context-path: /api
 spring:
+  config:
+    import: classpath:application-dev.yaml
   application:
     name: yuntu-backend
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${server.remote.host:127.0.0.1}:3306/yuntu
-    username: root
-    password: 20030219
+    url: jdbc:mysql://${server.remote.host:180.184.76.60}:3306/yun_tu
+    username: ${server.remote.mysql.username}
+    password: ${server.remote.mysql.password}
 mybatis-plus:
   configuration:
-    map-underscore-to-camel-case: true
     # 仅在开发环境开启日志
     log-impl: org.apache.ibatis.logging.log4j2.Log4j2Impl
   global-config:
     db-config:
-      logic-delete-field: is_delete
+      logic-delete-field: isDelete
       logic-delete-value: 1
       logic-not-delete-value: 0
 
@@ -30,7 +31,6 @@ knife4j:
     version: v1.0
     group:
       test1:
-        group-name: 默认分组
         api-rule: package
         api-rule-resources:
           - com.ljw.yuntubackend.controller
