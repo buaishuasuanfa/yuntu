@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ljw.yuntubackend.modal.dto.picture.PictureQueryRequest;
+import com.ljw.yuntubackend.modal.dto.picture.PictureReviewRequest;
 import com.ljw.yuntubackend.modal.dto.picture.PictureUploadRequest;
 import com.ljw.yuntubackend.modal.entity.Picture;
 import com.ljw.yuntubackend.modal.entity.User;
@@ -49,6 +50,16 @@ public interface IPictureService extends IService<Picture> {
      * @return
      */
     PictureVO getPictureVO(Picture picture, HttpServletRequest request);
+
+    /**
+     * 图片审核
+     */
+    boolean doReviewPicture(PictureReviewRequest pictureReviewRequest,User loginUser);
+
+    /**
+     * 补充审核参数
+     */
+    void fillReviewParams(Picture picture,User loginUser);
 
     /**
      * 获取图片分页封装类

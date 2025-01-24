@@ -1,5 +1,6 @@
 package com.ljw.yuntubackend.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.util.ObjUtil;
@@ -15,9 +16,11 @@ import com.ljw.yuntubackend.manager.FileManager;
 import com.ljw.yuntubackend.mapper.PictureMapper;
 import com.ljw.yuntubackend.modal.dto.file.UploadPictureResult;
 import com.ljw.yuntubackend.modal.dto.picture.PictureQueryRequest;
+import com.ljw.yuntubackend.modal.dto.picture.PictureReviewRequest;
 import com.ljw.yuntubackend.modal.dto.picture.PictureUploadRequest;
 import com.ljw.yuntubackend.modal.entity.Picture;
 import com.ljw.yuntubackend.modal.entity.User;
+import com.ljw.yuntubackend.modal.enums.PictureReviewStatusEnum;
 import com.ljw.yuntubackend.modal.vo.PictureVO;
 import com.ljw.yuntubackend.modal.vo.UserVO;
 import com.ljw.yuntubackend.service.IPictureService;
@@ -29,6 +32,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,6 +66,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
                     .eq(Picture::getId, pictureId)
                     .exists();
             ThrowUtils.throwIf(!exists, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
+            Picture picture = this.getById(pictureId);
+            Long userId = picture.getUserId();
+            if (!userId.equals(loginUser.getId()) && userService.isAdmin(loginUser)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
+            fileManager.deleteImage(picture.getUrl());
         }
         // 上传图片，得到信息
         // 按照用户 id 划分目录
@@ -77,6 +87,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         picture.setPicScale(uploadPictureResult.getPicScale());
         picture.setPicFormat(uploadPictureResult.getPicFormat());
         picture.setUserId(loginUser.getId());
+        fillReviewParams(picture,loginUser);
         // 如果 pictureId 不为空，表示更新，否则是新增
         if (pictureId != null) {
             // 如果是更新，需要补充 id 和编辑时间
@@ -116,6 +127,44 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             pictureVO.setUser(userVO);
         }
         return pictureVO;
+    }
+
+    @Override
+    public boolean doReviewPicture(PictureReviewRequest pictureReviewRequest,User loginUser) {
+        // 获取信息
+        Long pictureId = pictureReviewRequest.getId();
+        PictureReviewStatusEnum pictureReviewStatusEnum = PictureReviewStatusEnum.getEnumByCode(pictureReviewRequest.getReviewStatus());
+        if ( pictureId == null || pictureReviewStatusEnum == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        Picture oldPicture = this.getById(pictureId);
+        ThrowUtils.throwIf(oldPicture ==null,ErrorCode.NOT_FOUND_ERROR);
+
+        if (Objects.equals(oldPicture.getReviewStatus(), pictureReviewRequest.getReviewStatus())){
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,"请要重复设置状态");
+        }
+
+        Picture updatePicture = BeanUtil.copyProperties(oldPicture, Picture.class);
+        updatePicture.setReviewerId(loginUser.getId());
+        updatePicture.setReviewStatus(pictureReviewStatusEnum.getCode());
+        updatePicture.setReviewMessage(pictureReviewRequest.getReviewMessage());
+        updatePicture.setReviewTime(LocalDateTimeUtil.now());
+        boolean update = this.updateById(updatePicture);
+        ThrowUtils.throwIf(!update,ErrorCode.OPERATION_ERROR);
+        return true;
+    }
+
+    @Override
+    public void fillReviewParams(Picture picture, User loginUser) {
+        if (userService.isAdmin(loginUser)){
+            picture.setReviewStatus(PictureReviewStatusEnum.PASS.getCode());
+            picture.setReviewerId(loginUser.getId());
+            picture.setReviewMessage("管理员自动审核通过");
+            picture.setReviewTime(LocalDateTimeUtil.now());
+        }else {
+            picture.setReviewStatus(PictureReviewStatusEnum.REVIEW.getCode());
+        }
     }
 
     /**
@@ -186,6 +235,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         Long userId = pictureQueryRequest.getUserId();
         String sortField = pictureQueryRequest.getSortField();
         String sortOrder = pictureQueryRequest.getSortOrder();
+        Integer reviewStatus = pictureQueryRequest.getReviewStatus();
+        String reviewMessage = pictureQueryRequest.getReviewMessage();
+        Long reviewerId = pictureQueryRequest.getReviewerId();
         // 从多字段中搜索
         if (StrUtil.isNotBlank(searchText)) {
             // 需要拼接查询条件
@@ -195,15 +247,18 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             );
         }
         queryWrapper.eq(ObjUtil.isNotEmpty(id), "id", id);
-        queryWrapper.eq(ObjUtil.isNotEmpty(userId), "userId", userId);
+        queryWrapper.eq(ObjUtil.isNotEmpty(userId), "user_id", userId);
         queryWrapper.like(StrUtil.isNotBlank(name), "name", name);
         queryWrapper.like(StrUtil.isNotBlank(introduction), "introduction", introduction);
-        queryWrapper.like(StrUtil.isNotBlank(picFormat), "picFormat", picFormat);
+        queryWrapper.like(StrUtil.isNotBlank(picFormat), "pic_format", picFormat);
         queryWrapper.eq(StrUtil.isNotBlank(category), "category", category);
-        queryWrapper.eq(ObjUtil.isNotEmpty(picWidth), "picWidth", picWidth);
-        queryWrapper.eq(ObjUtil.isNotEmpty(picHeight), "picHeight", picHeight);
-        queryWrapper.eq(ObjUtil.isNotEmpty(picSize), "picSize", picSize);
-        queryWrapper.eq(ObjUtil.isNotEmpty(picScale), "picScale", picScale);
+        queryWrapper.eq(ObjUtil.isNotEmpty(picWidth), "pic_width", picWidth);
+        queryWrapper.eq(ObjUtil.isNotEmpty(picHeight), "pic_weight", picHeight);
+        queryWrapper.eq(ObjUtil.isNotEmpty(picSize), "pic_size", picSize);
+        queryWrapper.eq(ObjUtil.isNotEmpty(picScale), "pic_scale", picScale);
+        queryWrapper.eq(ObjUtil.isNotEmpty(reviewStatus), "review_status", reviewStatus);
+        queryWrapper.like(StrUtil.isNotBlank(reviewMessage), "review_message", reviewMessage);
+        queryWrapper.eq(ObjUtil.isNotEmpty(reviewerId), "reviewer_id", reviewerId);
         // JSON 数组查询
         if (CollUtil.isNotEmpty(tags)) {
             for (String tag : tags) {

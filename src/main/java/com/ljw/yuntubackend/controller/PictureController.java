@@ -11,10 +11,7 @@ import com.ljw.yuntubackend.constant.UserConstant;
 import com.ljw.yuntubackend.exception.BusinessException;
 import com.ljw.yuntubackend.exception.ErrorCode;
 import com.ljw.yuntubackend.exception.ThrowUtils;
-import com.ljw.yuntubackend.modal.dto.picture.PictureEditRequest;
-import com.ljw.yuntubackend.modal.dto.picture.PictureQueryRequest;
-import com.ljw.yuntubackend.modal.dto.picture.PictureUpdateRequest;
-import com.ljw.yuntubackend.modal.dto.picture.PictureUploadRequest;
+import com.ljw.yuntubackend.modal.dto.picture.*;
 import com.ljw.yuntubackend.modal.entity.Picture;
 import com.ljw.yuntubackend.modal.entity.PictureTagCategory;
 import com.ljw.yuntubackend.modal.entity.User;
@@ -55,7 +52,6 @@ public class PictureController {
      * 上传图片（可重新上传）
      */
     @PostMapping("/upload")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<PictureVO> uploadPicture(
             @RequestPart("file") MultipartFile multipartFile,
             PictureUploadRequest pictureUploadRequest,
@@ -93,6 +89,8 @@ public class PictureController {
         // 数据校验
         pictureService.validPicture(picture);
 
+        User loginUser = userService.getCurrentUser(request);
+        pictureService.fillReviewParams(picture,loginUser);
         // 操作数据库
         boolean result = pictureService.updateById(picture);
         ThrowUtils.throwIf(!result,ErrorCode.OPERATION_ERROR);
@@ -142,11 +140,13 @@ public class PictureController {
                                                              HttpServletRequest request) {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
+        User currentUser = userService.getCurrentUser(request);
+        pictureQueryRequest.setUserId(currentUser.getId());
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
         // 查询数据库
         Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
-                pictureService.getQueryWrapper(pictureQueryRequest));
+                pictureService.getQueryWrapper(pictureQueryRequest).in("review_status",Arrays.asList(0,1)));
         // 获取封装类
         return ResultUtils.success(pictureService.getPictureVOPage(picturePage, request));
     }
@@ -177,10 +177,27 @@ public class PictureController {
         if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
+
+        pictureService.fillReviewParams(picture,loginUser);
         // 操作数据库
         boolean result = pictureService.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
+    }
+
+    /**
+     * 管理员审核图片
+     * @return
+     */
+    @PostMapping("/preview")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> previewPicture(@RequestBody PictureReviewRequest pictureReviewRequest, HttpServletRequest request) {
+        if (pictureReviewRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getCurrentUser(request);
+        boolean result = pictureService.doReviewPicture(pictureReviewRequest, loginUser);
+        return ResultUtils.success(result);
     }
 
     @GetMapping("/tag_category")
