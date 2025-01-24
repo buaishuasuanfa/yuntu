@@ -12,7 +12,9 @@ import com.ljw.yuntubackend.constant.UserConstant;
 import com.ljw.yuntubackend.exception.BusinessException;
 import com.ljw.yuntubackend.exception.ErrorCode;
 import com.ljw.yuntubackend.exception.ThrowUtils;
-import com.ljw.yuntubackend.manager.FileManager;
+import com.ljw.yuntubackend.manager.upload.FilePictureUpload;
+import com.ljw.yuntubackend.manager.upload.PictureUploadTemplate;
+import com.ljw.yuntubackend.manager.upload.UrlPictureUpload;
 import com.ljw.yuntubackend.mapper.PictureMapper;
 import com.ljw.yuntubackend.modal.dto.file.UploadPictureResult;
 import com.ljw.yuntubackend.modal.dto.picture.PictureQueryRequest;
@@ -48,12 +50,15 @@ import java.util.stream.Collectors;
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> implements IPictureService {
 
     @Resource
-    private FileManager fileManager;
+    private FilePictureUpload filePictureUpload;
+    @Resource
+    private UrlPictureUpload urlPictureUpload;
     @Resource
     private IUserService userService;
 
     @Override
-    public PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, User loginUser) {
+    public PictureVO uploadPicture(Object inoutSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
+        PictureUploadTemplate pictureUploadTemplate = filePictureUpload;
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
         // 用于判断是新增还是更新图片
         Long pictureId = null;
@@ -71,12 +76,15 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             if (!userId.equals(loginUser.getId()) && userService.isAdmin(loginUser)) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
             }
-            fileManager.deleteImage(picture.getUrl());
+            pictureUploadTemplate.deleteImage(picture.getUrl());
+        }
+        if ( inoutSource instanceof String){
+            pictureUploadTemplate = urlPictureUpload;
         }
         // 上传图片，得到信息
         // 按照用户 id 划分目录
         String uploadPathPrefix = String.format("public/%s", loginUser.getId());
-        UploadPictureResult uploadPictureResult = fileManager.uploadPicture(multipartFile, uploadPathPrefix);
+        UploadPictureResult uploadPictureResult = pictureUploadTemplate.uploadPicture(inoutSource, uploadPathPrefix);
         // 构造要入库的图片信息
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
@@ -110,7 +118,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         }
 
         String url = picture.getUrl();
-        fileManager.deleteImage(url);
+        filePictureUpload.deleteImage(url);
         this.removeById(id);
         return true;
     }

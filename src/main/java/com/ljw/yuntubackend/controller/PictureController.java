@@ -62,6 +62,18 @@ public class PictureController {
     }
 
     /**
+     * 上传图片（通过URL上传）
+     */
+    @PostMapping("/upload/url")
+    public BaseResponse<PictureVO> uploadPictureUrl(PictureUploadRequest pictureUploadRequest,
+                                                    HttpServletRequest request){
+        User loginUser = userService.getCurrentUser(request);
+        String fileUrl = pictureUploadRequest.getFileUrl();
+        PictureVO pictureVO = pictureService.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
+        return ResultUtils.success(pictureVO);
+    }
+
+    /**
      * 删除图片(仅本人或者管理员可删除)
      */
     @DeleteMapping("/delete/{id}")
@@ -209,7 +221,4 @@ public class PictureController {
         pictureTagCategory.setCategoryList(categoryList);
         return ResultUtils.success(pictureTagCategory);
     }
-
-
-
 }
