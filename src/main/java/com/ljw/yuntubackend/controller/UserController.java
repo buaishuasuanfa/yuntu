@@ -2,7 +2,6 @@ package com.ljw.yuntubackend.controller;
 
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljw.yuntubackend.annotation.AuthCheck;
 import com.ljw.yuntubackend.common.BaseResponse;
@@ -12,7 +11,7 @@ import com.ljw.yuntubackend.constant.UserConstant;
 import com.ljw.yuntubackend.exception.BusinessException;
 import com.ljw.yuntubackend.exception.ErrorCode;
 import com.ljw.yuntubackend.exception.ThrowUtils;
-import com.ljw.yuntubackend.modal.dto.*;
+import com.ljw.yuntubackend.modal.dto.user.*;
 import com.ljw.yuntubackend.modal.entity.User;
 import com.ljw.yuntubackend.modal.vo.LoginUserVO;
 import com.ljw.yuntubackend.modal.vo.UserVO;
@@ -91,7 +90,7 @@ public class UserController {
      */
     @PostMapping("/edit")
     @AuthCheck(mustRole = UserConstant.DEFAULT_ROLE)
-    public BaseResponse<Boolean> editUser(@RequestBody UserUpdateRequest userUpdateRequest,HttpServletRequest request){
+    public BaseResponse<Boolean> editUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request){
         ThrowUtils.throwIf(userUpdateRequest == null, ErrorCode.PARAMS_ERROR);
         User user = userService.getById(userUpdateRequest.getId());
         if(!Objects.equals(user.getId(), userUpdateRequest.getId())){

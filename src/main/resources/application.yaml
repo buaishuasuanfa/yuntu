@@ -30,6 +30,13 @@ oss:
     bucketName: ${server.oss.bucketName}
     access-key-id: ${server.oss.access-key-id}
     access-key-secret: ${server.oss.access-key-secret}
+tos:
+  client:
+    accessKey: ${server.tos.accessKey}
+    secretKey: ${server.tos.secretKey}
+    region: ${server.tos.region}
+    bucketName: ${server.tos.bucketName}
+    endpoint: ${server.tos.endpoint}
 # 接口文档配置
 knife4j:
   enable: true

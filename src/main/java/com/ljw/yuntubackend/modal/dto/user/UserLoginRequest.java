@@ -1,4 +1,4 @@
-package com.ljw.yuntubackend.modal.dto;
+package com.ljw.yuntubackend.modal.dto.user;
 
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;

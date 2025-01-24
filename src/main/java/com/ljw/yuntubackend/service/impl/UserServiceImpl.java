@@ -1,30 +1,25 @@
 package com.ljw.yuntubackend.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ljw.yuntubackend.exception.BusinessException;
 import com.ljw.yuntubackend.exception.ErrorCode;
 import com.ljw.yuntubackend.exception.ThrowUtils;
-import com.ljw.yuntubackend.modal.dto.UserQueryRequest;
-import com.ljw.yuntubackend.modal.entity.User;
 import com.ljw.yuntubackend.mapper.UserMapper;
+import com.ljw.yuntubackend.modal.dto.user.UserQueryRequest;
+import com.ljw.yuntubackend.modal.entity.User;
 import com.ljw.yuntubackend.modal.enums.UserRoleEnum;
-import com.ljw.yuntubackend.modal.vo.LoginUserVO;
 import com.ljw.yuntubackend.modal.vo.UserVO;
 import com.ljw.yuntubackend.service.IUserService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpServletRequest;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;

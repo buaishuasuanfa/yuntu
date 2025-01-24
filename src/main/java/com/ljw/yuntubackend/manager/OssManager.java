@@ -1,11 +1,11 @@
 package com.ljw.yuntubackend.manager;
 
-import cn.hutool.core.util.StrUtil;
+import com.aliyun.oss.ClientException;
 import com.aliyun.oss.OSS;
+import com.aliyun.oss.OSSException;
+import com.aliyun.oss.model.GetObjectRequest;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.ljw.yuntubackend.config.OssClientConfig;
-import com.ljw.yuntubackend.exception.ErrorCode;
-import com.ljw.yuntubackend.exception.ThrowUtils;
 import com.ljw.yuntubackend.modal.enums.UploadFileTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -13,10 +13,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -33,37 +32,23 @@ public class OssManager {
     @Resource
     private OSS oss;
 
-
-    private static final long MAX_FILE_SIZE = 1024 * 1024; // 1MB
-    private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".jpg", ".png");
-
     private String objectName = "";
 
-    public String upload(MultipartFile file, String prefix, UploadFileTypeEnum uploadType) {
-        String str = uploadType.getType()+"/"+prefix;
-        setObjectName(file,prefix,uploadType);
+    public String upload(File file, String uploadPath, UploadFileTypeEnum uploadType) {
+        String str = uploadType.getType()+"/"+uploadPath;
+//        setObjectName(file,uploadPath,uploadType);
         return upload(file,str);
     }
 
-    public String upload(MultipartFile file,String prefix){
-        // 检查文件大小
-        checkFileSize(file);
-        // 检查文件类型
-        checkFileType(file);
+    public String upload(File file,String uploadPath){
         try {
-            if (Objects.equals(objectName, "")){
-                setObjectName(file,prefix,null);
-            }
-            byte[] content = file.getBytes();
-
-            ThrowUtils.throwIf(StrUtil.isBlank(objectName), ErrorCode.SYSTEM_ERROR,"文件名获取失败");
-            objectName = prefix+"/"+objectName;
+            FileInputStream fileInputStream = new FileInputStream(file);
             // 创建PutObjectRequest对象。
-            PutObjectRequest putObjectRequest = new PutObjectRequest(ossClientConfig.getBucketName(), objectName, new ByteArrayInputStream(content));
+            PutObjectRequest putObjectRequest = new PutObjectRequest(ossClientConfig.getBucketName(), uploadPath, fileInputStream);
 
             // 创建PutObject请求。
             oss.putObject(putObjectRequest);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("文件上传失败："+e.getMessage());
         }
 
@@ -74,44 +59,28 @@ public class OssManager {
                 .append(".")
                 .append(ossClientConfig.getEndpoint().split("//")[1])
                 .append("/")
-                .append(objectName);
+                .append(uploadPath);
 
         log.info("文件上传到:{}", stringBuilder);
 
         return stringBuilder.toString();
     }
 
-    private void setObjectName(MultipartFile file, String prefix, UploadFileTypeEnum uploadType) {
-        //原始文件名
-        String originalFilename = file.getOriginalFilename();
-        //截取原始文件名后缀 global.jpg
-        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        if (uploadType != null){
-            switch (uploadType) {
-                case IMAGE: this.objectName = prefix+extension;
-            }
-        } else{
-
-            //构造新文件名称
-            this.objectName = UUID.randomUUID()+ extension;
+    /**
+     * 下载文件
+     * @param pathName 文件保存位置
+     * @param fileName 文件名
+     * @return return
+     */
+    public boolean download(String pathName,String fileName) {
+        // 下载Object到本地文件，并保存到指定的本地路径中。如果指定的本地文件存在会覆盖，不存在则新建。
+        // 如果未指定本地路径，则下载后的文件默认保存到示例程序所属项目对应本地路径中。
+        try {
+            oss.getObject(new GetObjectRequest(ossClientConfig.getBucketName(), fileName), new File(pathName));
+        } catch (OSSException | ClientException e) {
+            throw new RuntimeException(e);
         }
-
-//        return UUID.randomUUID()+ extension;
+        return true;
     }
-
-    private void checkFileSize(MultipartFile file) {
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new RuntimeException("文件大小不能超过 1MB");
-        }
-    }
-
-    private void checkFileType(MultipartFile file) {
-        String originalFilename = file.getOriginalFilename();
-        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
-            throw new RuntimeException("不支持的文件类型，仅支持 " + ALLOWED_EXTENSIONS);
-        }
-    }
-
 
 }

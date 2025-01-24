@@ -1,10 +1,9 @@
 package com.ljw.yuntubackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ljw.yuntubackend.modal.dto.UserQueryRequest;
-import com.ljw.yuntubackend.modal.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.ljw.yuntubackend.modal.vo.LoginUserVO;
+import com.ljw.yuntubackend.modal.dto.user.UserQueryRequest;
+import com.ljw.yuntubackend.modal.entity.User;
 import com.ljw.yuntubackend.modal.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
