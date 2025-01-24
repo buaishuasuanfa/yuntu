@@ -59,6 +59,22 @@ public interface IUserService extends IService<User> {
     void logout(HttpServletRequest request);
 
     /**
+     * 新增用户
+     * @param user
+     * @return
+     */
+    boolean addUser(User user);
+
+    /**
+     * 是否为管理员
+     *
+     * @param user
+     * @return
+     */
+    boolean isAdmin(User user);
+
+
+    /**
      * 信息脱敏
      * @param user
      * @return
@@ -79,10 +95,4 @@ public interface IUserService extends IService<User> {
      */
     QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
 
-    /**
-     * 新增用户
-     * @param user
-     * @return
-     */
-    boolean addUser(User user);
 }

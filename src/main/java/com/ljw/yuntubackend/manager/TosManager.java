@@ -69,7 +69,8 @@ public class TosManager {
         return "";
     }
 
-    public ImageInfo getImageInfo(String uploadPath){
+    // 获取文件信息
+    public ImageInfo getImageInfo(String uploadPath) {
         // 获取图片信息
         String style = "image/info";
         TOSV2 tos = tosClient.getTosv2();
@@ -88,7 +89,7 @@ public class TosManager {
                 int width = jsonNode.get("ImageWidth").get("value").asInt();
                 double fileSize = jsonNode.get("FileSize").get("value").asDouble();
                 String format = jsonNode.get("Format").get("value").asText();
-                return new ImageInfo(height,width,fileSize,format);
+                return new ImageInfo(height, width, fileSize, format);
             } catch (JacksonException e) {
                 System.out.println("parse response data failed");
                 e.printStackTrace();
@@ -116,6 +117,13 @@ public class TosManager {
             System.out.println("unexpected exception, message: " + t.getMessage());
         }
         return null;
+    }
+
+    // 删除文件
+    public void delete(String uploadPath) {
+        TOSV2 tos = tosClient.getTosv2();
+        DeleteObjectInput input = new DeleteObjectInput().setBucket(tosClientConfig.getBucketName()).setKey(uploadPath);
+        tos.deleteObject(input);
     }
 
 }

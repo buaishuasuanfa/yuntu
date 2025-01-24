@@ -173,5 +173,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         return this.saveOrUpdate(user);
     }
 
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    }
 
 }
