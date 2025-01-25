@@ -2,8 +2,11 @@ package com.ljw.yuntubackend.controller;
 
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.ljw.yuntubackend.annotation.AuthCheck;
 import com.ljw.yuntubackend.common.BaseResponse;
 import com.ljw.yuntubackend.common.ResultUtils;
@@ -19,17 +22,18 @@ import com.ljw.yuntubackend.modal.vo.PictureVO;
 import com.ljw.yuntubackend.service.IPictureService;
 import com.ljw.yuntubackend.service.IUserService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
-import org.springframework.stereotype.Controller;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -47,6 +51,15 @@ public class PictureController {
     private IUserService userService;
     @Resource
     private IPictureService pictureService;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
+    private final Cache<String, String> LOCAL_CACHE =
+            Caffeine.newBuilder().initialCapacity(1024)
+                    .maximumSize(10000L)
+                    // 缓存 5-10 分钟移除
+                    .expireAfterWrite(300+RandomUtil.randomInt(0,300), TimeUnit.SECONDS)
+                    .build();
 
     /**
      * 上传图片（可重新上传）
@@ -156,11 +169,37 @@ public class PictureController {
         pictureQueryRequest.setUserId(currentUser.getId());
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+
+        // 封装key
+        String pictureQueryConstant = JSONUtil.toJsonStr(pictureQueryRequest);
+        String hashKey = DigestUtils.md5DigestAsHex(pictureQueryConstant.getBytes());
+        String key = "picture:listPictureVOByPage:"+hashKey;
+
+        // 1.查询本地缓存
+        String cache = LOCAL_CACHE.getIfPresent(key);
+        if (cache != null) {
+            Page<PictureVO> cachePage = JSONUtil.toBean(cache, Page.class);
+            return ResultUtils.success(cachePage);
+        }
+        // 2.查询Redis
+        cache = stringRedisTemplate.opsForValue().get(key);
+        if (cache != null) {
+            LOCAL_CACHE.put(key, cache);
+            Page<PictureVO> cachePage = JSONUtil.toBean(cache, Page.class);
+            return ResultUtils.success(cachePage);
+        }
+
         // 查询数据库
         Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
                 pictureService.getQueryWrapper(pictureQueryRequest).in("review_status",Arrays.asList(0,1)));
         // 获取封装类
-        return ResultUtils.success(pictureService.getPictureVOPage(picturePage, request));
+        Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage, request);
+        // 存入缓存
+        int seconds = 300 + RandomUtil.randomInt(0,300);
+        stringRedisTemplate.opsForValue().set(key,JSONUtil.toJsonStr(pictureVOPage),seconds, TimeUnit.SECONDS);
+        LOCAL_CACHE.put(key, JSONUtil.toJsonStr(pictureVOPage));
+
+        return ResultUtils.success(pictureVOPage);
     }
 
     /**

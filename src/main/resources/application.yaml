@@ -12,10 +12,14 @@ spring:
     url: jdbc:mysql://${server.remote.host:180.184.76.60}:3306/yun_tu
     username: ${server.remote.mysql.username}
     password: ${server.remote.mysql.password}
+  redis:
+    host: ${server.remote.host}
+    password: ${server.remote.redis.password}
+    timeout: ${server.remote.redis.timeout}
 mybatis-plus:
   configuration:
-    # 仅在开发环境开启日志
-    log-impl: org.apache.ibatis.logging.log4j2.Log4j2Impl
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  # 仅在开发环境开启日志
   global-config:
     db-config:
       logic-delete-field: isDelete
