@@ -35,7 +35,9 @@ public class TosManager {
             // 待上传的数据，以下代码以上传一个 ByteArrayInputStream 作为示例
             FileInputStream fileInputStream = new FileInputStream(file);
             // 设置上传的桶名和对象名
-            PutObjectInput putObjectInput = new PutObjectInput().setBucket(tosClient.getBucketName()).setKey(uploadPath).setContent(fileInputStream);
+            PutObjectInput putObjectInput = new PutObjectInput().setBucket(tosClient.getBucketName())
+                    .setKey(uploadPath)
+                    .setContent(fileInputStream);
             // 上传对象
             tos.putObject(putObjectInput);
 

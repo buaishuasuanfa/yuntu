@@ -9,6 +9,7 @@ import com.ljw.yuntubackend.exception.ErrorCode;
 import com.ljw.yuntubackend.manager.TosManager;
 import com.ljw.yuntubackend.modal.dto.file.UploadPictureResult;
 import com.ljw.yuntubackend.modal.entity.ImageInfo;
+import com.ljw.yuntubackend.utils.ImgUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Resource;
@@ -41,16 +42,15 @@ public abstract class PictureUploadTemplate {
         String uuid = RandomUtil.randomString(16);
         String originFilename = getOriginalFilename(object);
         String uploadFilename = String.format("%s_%s.%s", DateUtil.formatDate(new Date()), uuid,
-                FileUtil.getSuffix(originFilename));
+                "wbmp");
         String uploadPath = String.format("%s/%s", uploadPathPrefix, uploadFilename);
-        if(FileUtil.getSuffix(originFilename).isEmpty()){
-            uploadPath = uploadPath + "png";
-        };
         File file = null;
         try {
             file = File.createTempFile(uploadPath,null);
             // 处理文件来源
             processFile(object,file);
+            // 压缩图片
+            ImgUtil.toWebpFile(file);
             // 上传图片
             String upload = tosManager.upload(file, uploadPath);
             ImageInfo imageInfo = tosManager.getImageInfo(uploadPath);
