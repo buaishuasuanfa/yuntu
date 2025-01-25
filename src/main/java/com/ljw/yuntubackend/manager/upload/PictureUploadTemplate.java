@@ -106,22 +106,8 @@ public abstract class PictureUploadTemplate {
     /**
      * 删除图片
      */
-    public void deleteImage(String url) {
-        String baseUrl = "https://ljw-bucket.tos-cn-beijing.volces.com/";
-        // 先找到 baseUrl 在原 URL 中的结束位置
-        int startIndex = url.indexOf(baseUrl);
-        if (startIndex != -1) {
-            startIndex += baseUrl.length();
-
-            // 再找到第一个问号的位置
-            int endIndex = url.indexOf('?');
-            if (endIndex != -1) {
-                // 提取目标内容
-                String result = url.substring(startIndex, endIndex);
-                result = result.replace("%2F", "/");
-                tosManager.delete(result);
-            }
-        }
+    public void deleteImage(String uploadPath) {
+        tosManager.delete(uploadPath);
     }
 
 }

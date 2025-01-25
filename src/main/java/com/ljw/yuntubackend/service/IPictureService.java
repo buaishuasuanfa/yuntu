@@ -42,14 +42,6 @@ public interface IPictureService extends IService<Picture> {
                             String category);
 
     /**
-     * 删除图片（管理员）
-     * @param id
-     * @return
-     */
-    boolean deletePicture(Long id,User loginUser);
-
-
-    /**
      * 获取图片返回封装类
      * @param picture
      * @param request
@@ -66,6 +58,11 @@ public interface IPictureService extends IService<Picture> {
      * 批量抓取图片
      */
     Integer batchUploadPicture(PictureBatchUploadRequest pictureBatchUploadRequest, User loginUser);
+
+    /**
+     * 删除图片
+     */
+    void deletePicture(Picture picture, User loginUser);
 
     /**
      * 补充审核参数

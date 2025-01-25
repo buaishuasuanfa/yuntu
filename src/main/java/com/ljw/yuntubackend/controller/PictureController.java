@@ -267,6 +267,18 @@ public class PictureController {
         return ResultUtils.success(count);
     }
 
+    /**
+     * 删除图片
+     * @return
+     */
+    @DeleteMapping("/delete")
+    public BaseResponse<Boolean> deletePicture(@RequestBody PictureDeleteRequest pictureDeleteRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(pictureDeleteRequest.getPictureId().isEmpty() || pictureDeleteRequest.getUploadPath().isEmpty() || pictureDeleteRequest.getUserId() == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getCurrentUser(request);
+        pictureService.deletePicture(BeanUtil.copyProperties(pictureDeleteRequest,Picture.class),loginUser);
+        return ResultUtils.success(true);
+    }
+
     @GetMapping("/tag_category")
     public BaseResponse<PictureTagCategory> listPictureTagCategory() {
         PictureTagCategory pictureTagCategory = new PictureTagCategory();

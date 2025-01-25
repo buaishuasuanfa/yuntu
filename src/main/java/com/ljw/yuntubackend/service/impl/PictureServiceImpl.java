@@ -146,22 +146,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     }
 
     @Override
-    public boolean deletePicture(Long id, User loginUser) {
-        Picture picture = this.getById(id);
-        if (picture == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
-        if (!picture.getUserId().equals(loginUser.getId()) && !loginUser.getUserRole().equals(UserConstant.ADMIN_ROLE)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-
-        String url = picture.getUrl();
-        filePictureUpload.deleteImage(url);
-        this.removeById(id);
-        return true;
-    }
-
-    @Override
     public PictureVO getPictureVO(Picture picture, HttpServletRequest request) {
         // 对象转封装类
         PictureVO pictureVO = PictureVO.objToVo(picture,tosManager);
@@ -248,6 +232,23 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             }
         }
         return uploadCount;
+    }
+
+    @Override
+    public void deletePicture(Picture picture, User loginUser) {
+        if (!Objects.equals(picture.getUserId(), loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        // todo 若是管理员删除用户图片，必须通知用户
+
+        Long count = this.lambdaQuery()
+                .eq(Picture::getUploadPath, picture.getUploadPath())
+                .count();
+        ThrowUtils.throwIf(count > 1, ErrorCode.OPERATION_ERROR,"多条消息关联");
+
+        this.removeById(picture.getId());
+        PictureUploadTemplate pictureUploadTemplate = new FilePictureUpload();
+        pictureUploadTemplate.deleteImage(picture.getUploadPath());
     }
 
 
