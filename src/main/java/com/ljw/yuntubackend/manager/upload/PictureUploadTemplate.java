@@ -52,10 +52,10 @@ public abstract class PictureUploadTemplate {
             // 压缩图片
             ImgUtil.toWebpFile(file);
             // 上传图片
-            String upload = tosManager.upload(file, uploadPath);
+            tosManager.upload(file, uploadPath);
             ImageInfo imageInfo = tosManager.getImageInfo(uploadPath);
             // 封装返回结果
-            return getUploadPictureResult(imageInfo,originFilename,file,upload);
+            return getUploadPictureResult(imageInfo,originFilename,file,uploadPath);
         } catch (Exception e) {
             log.error("图片上传到对象存储失败", e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
@@ -87,7 +87,7 @@ public abstract class PictureUploadTemplate {
         }
     }
 
-    private UploadPictureResult getUploadPictureResult(ImageInfo imageInfo,String originFilename,File file,String upload) {
+    private UploadPictureResult getUploadPictureResult(ImageInfo imageInfo,String originFilename,File file,String uploadPath) {
         UploadPictureResult uploadPictureResult = new UploadPictureResult();
         int picWidth = imageInfo.getWidth();
         int picHeight = imageInfo.getHeight();
@@ -99,7 +99,7 @@ public abstract class PictureUploadTemplate {
         uploadPictureResult.setPicScale(picScale);
         uploadPictureResult.setPicFormat(format);
         uploadPictureResult.setPicSize(FileUtil.size(file));
-        uploadPictureResult.setUrl(upload);
+        uploadPictureResult.setUploadPath(uploadPath);
         return uploadPictureResult;
     }
 

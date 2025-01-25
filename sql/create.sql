@@ -23,7 +23,8 @@ create table if not exists user
 create table if not exists picture
 (
     id             bigint auto_increment comment 'id' primary key,
-    url            varchar(512)                       not null comment '图片 url',
+    url            varchar(512)                       comment '图片 url',
+    upload_path     varchar(128)                      not null comment '上传的 key',
     name           varchar(128)                       not null comment '图片名称',
     introduction   varchar(512)                       null comment '简介',
     category       varchar(64)                        null comment '分类',

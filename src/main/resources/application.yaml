@@ -12,6 +12,13 @@ spring:
     url: jdbc:mysql://${server.remote.host:180.184.76.60}:3306/yun_tu
     username: ${server.remote.mysql.username}
     password: ${server.remote.mysql.password}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 24
+      connection-timeout: 60000
+      # connection-test-query: select 1
+      idle-timeout: 50000
+      max-lifetime: 54000
   redis:
     host: ${server.remote.host}
     password: ${server.remote.redis.password}

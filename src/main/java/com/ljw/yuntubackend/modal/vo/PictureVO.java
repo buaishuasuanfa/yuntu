@@ -1,6 +1,7 @@
 package com.ljw.yuntubackend.modal.vo;
 
 import cn.hutool.json.JSONUtil;
+import com.ljw.yuntubackend.manager.TosManager;
 import com.ljw.yuntubackend.modal.entity.Picture;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
@@ -23,9 +24,9 @@ public class PictureVO implements Serializable {
     private Long id;  
   
     /**  
-     * 图片 url  
+     * 缩略图片 url
      */  
-    private String url;  
+    private String thumbnailUrl;
   
     /**  
      * 图片名称  
@@ -102,10 +103,10 @@ public class PictureVO implements Serializable {
     /**  
      * 封装类转对象  
      */  
-    public static Picture voToObj(PictureVO pictureVO) {  
+    public static Picture voToObj(PictureVO pictureVO) {
         if (pictureVO == null) {  
             return null;  
-        }  
+        }
         Picture picture = new Picture();
         BeanUtils.copyProperties(pictureVO, picture);
         // 类型不同，需要转换  
@@ -116,12 +117,14 @@ public class PictureVO implements Serializable {
     /**  
      * 对象转封装类  
      */  
-    public static PictureVO objToVo(Picture picture) {  
+    public static PictureVO objToVo(Picture picture, TosManager tosManager) {
         if (picture == null) {  
             return null;  
-        }  
+        }
+        String preSignatureUrl = tosManager.getPreSignatureUrl(picture.getUploadPath(), true);
         PictureVO pictureVO = new PictureVO();  
-        BeanUtils.copyProperties(picture, pictureVO);  
+        BeanUtils.copyProperties(picture, pictureVO);
+        pictureVO.setThumbnailUrl(preSignatureUrl);
         // 类型不同，需要转换  
         pictureVO.setTags(JSONUtil.toList(picture.getTags(), String.class));  
         return pictureVO;  

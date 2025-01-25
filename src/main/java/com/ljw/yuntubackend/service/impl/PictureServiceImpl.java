@@ -5,13 +5,17 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.ljw.yuntubackend.constant.UserConstant;
 import com.ljw.yuntubackend.exception.BusinessException;
 import com.ljw.yuntubackend.exception.ErrorCode;
 import com.ljw.yuntubackend.exception.ThrowUtils;
+import com.ljw.yuntubackend.manager.TosManager;
 import com.ljw.yuntubackend.manager.upload.FilePictureUpload;
 import com.ljw.yuntubackend.manager.upload.PictureUploadTemplate;
 import com.ljw.yuntubackend.manager.upload.UrlPictureUpload;
@@ -33,15 +37,14 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -62,6 +65,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     private UrlPictureUpload urlPictureUpload;
     @Resource
     private IUserService userService;
+    @Resource
+    private TosManager tosManager;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private Cache<String,String> caffeineCache;
 
     @Override
     public PictureVO uploadPicture(Object inoutSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
@@ -104,6 +113,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         UploadPictureResult uploadPictureResult = pictureUploadTemplate.uploadPicture(inoutSource, uploadPathPrefix);
         // 构造要入库的图片信息
         Picture picture = new Picture();
+        picture.setUploadPath(uploadPictureResult.getUploadPath());
         picture.setUrl(uploadPictureResult.getUrl());
         picture.setName(uploadPictureResult.getPicName());
         picture.setPicSize(uploadPictureResult.getPicSize());
@@ -123,8 +133,16 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             picture.setEditTime(LocalDateTimeUtil.now());
         }
         boolean result = this.saveOrUpdate(picture);
+        // 删除缓存
+        if ( result ){
+            String hashKey = DigestUtils.md5DigestAsHex(JSONUtil.toJsonStr(loginUser).getBytes());
+            String key = "picture:listPictureVOByPage:"+hashKey;
+
+            caffeineCache.invalidate(key);
+            stringRedisTemplate.delete(key);
+        }
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
-        return PictureVO.objToVo(picture);
+        return PictureVO.objToVo(picture,tosManager);
     }
 
     @Override
@@ -146,7 +164,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     @Override
     public PictureVO getPictureVO(Picture picture, HttpServletRequest request) {
         // 对象转封装类
-        PictureVO pictureVO = PictureVO.objToVo(picture);
+        PictureVO pictureVO = PictureVO.objToVo(picture,tosManager);
         // 关联查询用户信息
         Long userId = picture.getUserId();
         if (userId != null && userId > 0) {
@@ -256,7 +274,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             return pictureVOPage;
         }
         // 对象列表 => 封装对象列表
-        List<PictureVO> pictureVOList = pictureList.stream().map(PictureVO::objToVo).collect(Collectors.toList());
+        List<PictureVO> pictureVOList = new ArrayList<>();
+        for (Picture picture : pictureList) {
+            PictureVO pictureVO = PictureVO.objToVo(picture,tosManager);
+            pictureVOList.add(pictureVO);
+        }
         // 1. 关联查询用户信息
         Set<Long> userIdSet = pictureList.stream().map(Picture::getUserId).collect(Collectors.toSet());
         Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
