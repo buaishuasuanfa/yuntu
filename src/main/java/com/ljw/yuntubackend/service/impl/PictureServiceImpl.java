@@ -17,6 +17,7 @@ import com.ljw.yuntubackend.manager.upload.PictureUploadTemplate;
 import com.ljw.yuntubackend.manager.upload.UrlPictureUpload;
 import com.ljw.yuntubackend.mapper.PictureMapper;
 import com.ljw.yuntubackend.modal.dto.file.UploadPictureResult;
+import com.ljw.yuntubackend.modal.dto.picture.PictureBatchUploadRequest;
 import com.ljw.yuntubackend.modal.dto.picture.PictureQueryRequest;
 import com.ljw.yuntubackend.modal.dto.picture.PictureReviewRequest;
 import com.ljw.yuntubackend.modal.dto.picture.PictureUploadRequest;
@@ -27,11 +28,16 @@ import com.ljw.yuntubackend.modal.vo.PictureVO;
 import com.ljw.yuntubackend.modal.vo.UserVO;
 import com.ljw.yuntubackend.service.IPictureService;
 import com.ljw.yuntubackend.service.IUserService;
+import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,6 +52,7 @@ import java.util.stream.Collectors;
  * @author liujiawei
  * @since 2025-01-24
  */
+@Slf4j
 @Service
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> implements IPictureService {
 
@@ -58,6 +65,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 
     @Override
     public PictureVO uploadPicture(Object inoutSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
+        return uploadPicture(inoutSource, pictureUploadRequest, loginUser, "");
+    }
+
+    @Override
+    public PictureVO uploadPicture(Object inoutSource, PictureUploadRequest pictureUploadRequest, User loginUser, String category) {
         PictureUploadTemplate pictureUploadTemplate = filePictureUpload;
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
         // 用于判断是新增还是更新图片
@@ -78,12 +90,17 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             }
             pictureUploadTemplate.deleteImage(picture.getUrl());
         }
-        if ( inoutSource instanceof String){
+        if (inoutSource instanceof String) {
             pictureUploadTemplate = urlPictureUpload;
         }
         // 上传图片，得到信息
         // 按照用户 id 划分目录
-        String uploadPathPrefix = String.format("public/%s", loginUser.getId());
+        String uploadPathPrefix = "";
+        if (!category.isEmpty()) {
+            uploadPathPrefix = String.format("public/%s/%s", loginUser.getId(), category);
+        } else {
+            uploadPathPrefix = String.format("public/%s", loginUser.getId());
+        }
         UploadPictureResult uploadPictureResult = pictureUploadTemplate.uploadPicture(inoutSource, uploadPathPrefix);
         // 构造要入库的图片信息
         Picture picture = new Picture();
@@ -95,7 +112,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         picture.setPicScale(uploadPictureResult.getPicScale());
         picture.setPicFormat(uploadPictureResult.getPicFormat());
         picture.setUserId(loginUser.getId());
-        fillReviewParams(picture,loginUser);
+        if (!category.isEmpty()) {
+            picture.setCategory(category);
+        }
+        fillReviewParams(picture, loginUser);
         // 如果 pictureId 不为空，表示更新，否则是新增
         if (pictureId != null) {
             // 如果是更新，需要补充 id 和编辑时间
@@ -108,12 +128,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     }
 
     @Override
-    public boolean deletePicture(Long id,User loginUser) {
+    public boolean deletePicture(Long id, User loginUser) {
         Picture picture = this.getById(id);
         if (picture == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        if (!picture.getUserId().equals(loginUser.getId()) && !loginUser.getUserRole().equals(UserConstant.ADMIN_ROLE) ) {
+        if (!picture.getUserId().equals(loginUser.getId()) && !loginUser.getUserRole().equals(UserConstant.ADMIN_ROLE)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
 
@@ -138,19 +158,19 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     }
 
     @Override
-    public boolean doReviewPicture(PictureReviewRequest pictureReviewRequest,User loginUser) {
+    public boolean doReviewPicture(PictureReviewRequest pictureReviewRequest, User loginUser) {
         // 获取信息
         Long pictureId = pictureReviewRequest.getId();
         PictureReviewStatusEnum pictureReviewStatusEnum = PictureReviewStatusEnum.getEnumByCode(pictureReviewRequest.getReviewStatus());
-        if ( pictureId == null || pictureReviewStatusEnum == null) {
+        if (pictureId == null || pictureReviewStatusEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
 
         Picture oldPicture = this.getById(pictureId);
-        ThrowUtils.throwIf(oldPicture ==null,ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
 
-        if (Objects.equals(oldPicture.getReviewStatus(), pictureReviewRequest.getReviewStatus())){
-            throw new BusinessException(ErrorCode.OPERATION_ERROR,"请要重复设置状态");
+        if (Objects.equals(oldPicture.getReviewStatus(), pictureReviewRequest.getReviewStatus())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "请要重复设置状态");
         }
 
         Picture updatePicture = BeanUtil.copyProperties(oldPicture, Picture.class);
@@ -159,18 +179,68 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         updatePicture.setReviewMessage(pictureReviewRequest.getReviewMessage());
         updatePicture.setReviewTime(LocalDateTimeUtil.now());
         boolean update = this.updateById(updatePicture);
-        ThrowUtils.throwIf(!update,ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR);
         return true;
     }
 
     @Override
+    public Integer batchUploadPicture(PictureBatchUploadRequest pictureBatchUploadRequest, User loginUser) {
+        String searchText = pictureBatchUploadRequest.getSearchText();
+        // 格式化数量
+        int count = pictureBatchUploadRequest.getSize();
+        ThrowUtils.throwIf(count > 30, ErrorCode.PARAMS_ERROR, "最多 30 条");
+        // 要抓取的地址
+        String fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1", searchText);
+        Document document;
+        try {
+            document = Jsoup.connect(fetchUrl).get();
+        } catch (IOException e) {
+            log.error("获取页面失败", e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取页面失败");
+        }
+        Element div = document.getElementsByClass("dgControl").first();
+        if (ObjUtil.isNull(div)) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取元素失败");
+        }
+        Elements imgElementList = div.select("img.mimg");
+        int uploadCount = 0;
+        for (Element imgElement : imgElementList) {
+            String fileUrl = imgElement.attr("src");
+            if (StrUtil.isBlank(fileUrl)) {
+                log.info("当前链接为空，已跳过: {}", fileUrl);
+                continue;
+            }
+            // 处理图片上传地址，防止出现转义问题
+            int questionMarkIndex = fileUrl.indexOf("?");
+            if (questionMarkIndex > -1) {
+                fileUrl = fileUrl.substring(0, questionMarkIndex);
+            }
+            // 上传图片
+            PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+            try {
+                PictureVO pictureVO = this.uploadPicture(fileUrl, pictureUploadRequest, loginUser, searchText);
+                log.info("图片上传成功, id = {}", pictureVO.getId());
+                uploadCount++;
+            } catch (Exception e) {
+                log.error("图片上传失败", e);
+                continue;
+            }
+            if (uploadCount >= count) {
+                break;
+            }
+        }
+        return uploadCount;
+    }
+
+
+    @Override
     public void fillReviewParams(Picture picture, User loginUser) {
-        if (userService.isAdmin(loginUser)){
+        if (userService.isAdmin(loginUser)) {
             picture.setReviewStatus(PictureReviewStatusEnum.PASS.getCode());
             picture.setReviewerId(loginUser.getId());
             picture.setReviewMessage("管理员自动审核通过");
             picture.setReviewTime(LocalDateTimeUtil.now());
-        }else {
+        } else {
             picture.setReviewStatus(PictureReviewStatusEnum.REVIEW.getCode());
         }
     }

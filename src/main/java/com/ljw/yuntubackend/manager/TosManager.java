@@ -125,5 +125,4 @@ public class TosManager {
         DeleteObjectInput input = new DeleteObjectInput().setBucket(tosClientConfig.getBucketName()).setKey(uploadPath);
         tos.deleteObject(input);
     }
-
 }

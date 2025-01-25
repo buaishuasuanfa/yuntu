@@ -43,6 +43,9 @@ public abstract class PictureUploadTemplate {
         String uploadFilename = String.format("%s_%s.%s", DateUtil.formatDate(new Date()), uuid,
                 FileUtil.getSuffix(originFilename));
         String uploadPath = String.format("%s/%s", uploadPathPrefix, uploadFilename);
+        if(FileUtil.getSuffix(originFilename).isEmpty()){
+            uploadPath = uploadPath + "png";
+        };
         File file = null;
         try {
             file = File.createTempFile(uploadPath,null);

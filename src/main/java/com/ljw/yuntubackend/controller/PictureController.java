@@ -212,6 +212,19 @@ public class PictureController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 批量加载图片（仅管理员）
+     * @return 加载图片数量
+     */
+    @PostMapping("/upload/batch")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Integer> batchUploadPicture(@RequestBody PictureBatchUploadRequest pictureBatchUploadRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(pictureBatchUploadRequest.getSearchText() == null,ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getCurrentUser(request);
+        Integer count = pictureService.batchUploadPicture(pictureBatchUploadRequest, loginUser);
+        return ResultUtils.success(count);
+    }
+
     @GetMapping("/tag_category")
     public BaseResponse<PictureTagCategory> listPictureTagCategory() {
         PictureTagCategory pictureTagCategory = new PictureTagCategory();

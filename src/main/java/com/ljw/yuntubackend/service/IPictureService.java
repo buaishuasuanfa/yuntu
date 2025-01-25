@@ -3,6 +3,7 @@ package com.ljw.yuntubackend.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ljw.yuntubackend.modal.dto.picture.PictureBatchUploadRequest;
 import com.ljw.yuntubackend.modal.dto.picture.PictureQueryRequest;
 import com.ljw.yuntubackend.modal.dto.picture.PictureReviewRequest;
 import com.ljw.yuntubackend.modal.dto.picture.PictureUploadRequest;
@@ -35,6 +36,11 @@ public interface IPictureService extends IService<Picture> {
                             PictureUploadRequest pictureUploadRequest,
                             User loginUser);
 
+    PictureVO uploadPicture(Object inoutSource,
+                            PictureUploadRequest pictureUploadRequest,
+                            User loginUser,
+                            String category);
+
     /**
      * 删除图片（管理员）
      * @param id
@@ -55,6 +61,11 @@ public interface IPictureService extends IService<Picture> {
      * 图片审核
      */
     boolean doReviewPicture(PictureReviewRequest pictureReviewRequest,User loginUser);
+
+    /**
+     * 批量抓取图片
+     */
+    Integer batchUploadPicture(PictureBatchUploadRequest pictureBatchUploadRequest, User loginUser);
 
     /**
      * 补充审核参数
