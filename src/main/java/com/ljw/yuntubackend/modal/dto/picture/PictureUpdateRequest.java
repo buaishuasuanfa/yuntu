@@ -1,5 +1,6 @@
 package com.ljw.yuntubackend.modal.dto.picture;
 
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -31,7 +32,10 @@ public class PictureUpdateRequest implements Serializable {
     /**  
      * 分类  
      */  
-    private String category;  
+    private String category;
+
+    @ApiModelProperty(value = "空间 id")
+    private Long spaceId;
   
     /**  
      * 标签  

@@ -1,5 +1,6 @@
 package com.ljw.yuntubackend.modal.dto.picture;
 
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -21,6 +22,9 @@ public class PictureUploadRequest implements Serializable {
      * 文件地址
      */
     private String fileUrl;
+
+    @ApiModelProperty(value = "空间 id")
+    private Long spaceId;
 
     private static final long serialVersionUID = 1L;
 }

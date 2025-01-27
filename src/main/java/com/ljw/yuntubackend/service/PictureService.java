@@ -3,14 +3,10 @@ package com.ljw.yuntubackend.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.ljw.yuntubackend.modal.dto.picture.PictureBatchUploadRequest;
-import com.ljw.yuntubackend.modal.dto.picture.PictureQueryRequest;
-import com.ljw.yuntubackend.modal.dto.picture.PictureReviewRequest;
-import com.ljw.yuntubackend.modal.dto.picture.PictureUploadRequest;
+import com.ljw.yuntubackend.modal.dto.picture.*;
 import com.ljw.yuntubackend.modal.entity.Picture;
 import com.ljw.yuntubackend.modal.entity.User;
 import com.ljw.yuntubackend.modal.vo.PictureVO;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -22,7 +18,7 @@ import javax.servlet.http.HttpServletRequest;
  * @author liujiawei
  * @since 2025-01-24
  */
-public interface IPictureService extends IService<Picture> {
+public interface PictureService extends IService<Picture> {
 
     /**
      * 上传图片
@@ -65,6 +61,13 @@ public interface IPictureService extends IService<Picture> {
     void deletePicture(Picture picture, User loginUser);
 
     /**
+     * 编辑图片（用户）
+     * @param pictureEditRequest
+     * @return
+     */
+    boolean editPicture(PictureEditRequest pictureEditRequest, User loginUser);
+
+    /**
      * 补充审核参数
      */
     void fillReviewParams(Picture picture,User loginUser);
@@ -89,5 +92,11 @@ public interface IPictureService extends IService<Picture> {
      * @return
      */
     QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest);
+
+    /**
+     * 检测权限
+     */
+    void checkPictureAuth(Picture picture,User loginUser);
+
 
 }
