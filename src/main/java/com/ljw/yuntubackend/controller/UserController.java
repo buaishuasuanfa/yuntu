@@ -15,7 +15,7 @@ import com.ljw.yuntubackend.modal.dto.user.*;
 import com.ljw.yuntubackend.modal.entity.User;
 import com.ljw.yuntubackend.modal.vo.LoginUserVO;
 import com.ljw.yuntubackend.modal.vo.UserVO;
-import com.ljw.yuntubackend.service.IUserService;
+import com.ljw.yuntubackend.service.UserService;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -36,7 +36,7 @@ import java.util.Objects;
 public class UserController {
 
     @Resource
-    private IUserService userService;
+    private UserService userService;
 
     /**
      * 用户注册

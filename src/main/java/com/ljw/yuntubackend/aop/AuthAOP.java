@@ -6,7 +6,7 @@ import com.ljw.yuntubackend.exception.ErrorCode;
 import com.ljw.yuntubackend.exception.ThrowUtils;
 import com.ljw.yuntubackend.modal.entity.User;
 import com.ljw.yuntubackend.modal.enums.UserRoleEnum;
-import com.ljw.yuntubackend.service.IUserService;
+import com.ljw.yuntubackend.service.UserService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -16,7 +16,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.annotation.Resource;
-import javax.security.auth.message.AuthException;
 import javax.servlet.http.HttpServletRequest;
 
 import static com.ljw.yuntubackend.constant.UserConstant.USER_LOGIN_STATE;
@@ -31,7 +30,7 @@ import static com.ljw.yuntubackend.constant.UserConstant.USER_LOGIN_STATE;
 public class AuthAOP {
 
     @Resource
-    private IUserService userService;
+    private UserService userService;
 
     @Around("@annotation(authCheck)")
     public Object authCheck(ProceedingJoinPoint joinPoint, AuthCheck authCheck) throws Throwable {

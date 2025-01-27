@@ -14,7 +14,7 @@ import com.ljw.yuntubackend.modal.dto.user.UserQueryRequest;
 import com.ljw.yuntubackend.modal.entity.User;
 import com.ljw.yuntubackend.modal.enums.UserRoleEnum;
 import com.ljw.yuntubackend.modal.vo.UserVO;
-import com.ljw.yuntubackend.service.IUserService;
+import com.ljw.yuntubackend.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -35,7 +35,7 @@ import static com.ljw.yuntubackend.constant.UserConstant.USER_LOGIN_STATE;
  * @since 2025-01-23
  */
 @Service
-public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     private final String DEFAULT_AVATAR = "https://ljw-bucket.oss-cn-hangzhou.aliyuncs.com/avatar/1881171093897687041/1881171093897687041.png";
     private final String NAME_PREFIX = "USER_";

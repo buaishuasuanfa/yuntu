@@ -17,7 +17,7 @@ import java.util.List;
  * @author liujiawei
  * @since 2025-01-23
  */
-public interface IUserService extends IService<User> {
+public interface UserService extends IService<User> {
 
     /**
      * 用户注册
