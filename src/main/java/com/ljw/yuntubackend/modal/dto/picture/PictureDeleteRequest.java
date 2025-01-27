@@ -12,7 +12,7 @@ import java.io.Serializable;
 @Data
 public class PictureDeleteRequest implements Serializable {
 
-    private String pictureId;
+    private String id;
     private String uploadPath;
     private Long userId;
 

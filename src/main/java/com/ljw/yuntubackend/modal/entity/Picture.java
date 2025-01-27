@@ -84,7 +84,6 @@ public class Picture implements Serializable {
     @ApiModelProperty(value = "空间 ID")
     private Long spaceId;
 
-
     @ApiModelProperty(value = "创建时间")
     private LocalDateTime createTime;
 

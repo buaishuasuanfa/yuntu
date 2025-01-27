@@ -4,6 +4,8 @@ package com.ljw.yuntubackend.controller;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.ljw.yuntubackend.annotation.AuthCheck;
@@ -21,18 +23,16 @@ import com.ljw.yuntubackend.modal.entity.User;
 import com.ljw.yuntubackend.modal.vo.PictureVO;
 import com.ljw.yuntubackend.service.PictureService;
 import com.ljw.yuntubackend.service.UserService;
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
-
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -131,9 +131,13 @@ public class PictureController {
         // 检测权限
         Long spaceId = picture.getSpaceId();
         if (spaceId != null) {
+            // 若该图片属于某一个空间则判断是否为本人查询
             User loginUser = userService.getCurrentUser(request);
+            Long userId = picture.getUserId();
             pictureService.checkPictureAuth(picture,loginUser);
+            ThrowUtils.throwIf(Objects.equals(userId, loginUser.getId()),ErrorCode.NO_AUTH_ERROR);
         }
+
         return ResultUtils.success(pictureService.getPictureVO(picture,null));
     }
 
@@ -149,8 +153,8 @@ public class PictureController {
         // 检测权限
         Long spaceId = pictureQueryRequest.getSpaceId();
         if (spaceId != null) {
-            Picture picture = new Picture();
-            picture.setSpaceId(spaceId);
+            LambdaQueryWrapper<Picture> queryWrapper = Wrappers.lambdaQuery(Picture.class).eq(Picture::getSpaceId, spaceId);
+            Picture picture = pictureService.getOne(queryWrapper);
             pictureService.checkPictureAuth(picture,currentUser);
         }
 
@@ -262,7 +266,7 @@ public class PictureController {
      */
     @DeleteMapping("/delete")
     public BaseResponse<Boolean> deletePicture(@RequestBody PictureDeleteRequest pictureDeleteRequest, HttpServletRequest request) {
-        ThrowUtils.throwIf(pictureDeleteRequest.getPictureId().isEmpty() || pictureDeleteRequest.getUploadPath().isEmpty() || pictureDeleteRequest.getUserId() == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(pictureDeleteRequest.getId().isEmpty() || pictureDeleteRequest.getUploadPath().isEmpty() || pictureDeleteRequest.getUserId() == null, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getCurrentUser(request);
         pictureService.deletePicture(BeanUtil.copyProperties(pictureDeleteRequest,Picture.class),loginUser);
         return ResultUtils.success(true);

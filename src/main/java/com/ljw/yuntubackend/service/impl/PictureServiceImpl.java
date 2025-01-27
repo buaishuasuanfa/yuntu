@@ -282,7 +282,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         }
         // todo 若是管理员删除用户上传的公共图片，必须通知用户
 
-        checkPictureAuth(picture, loginUser);
+        Picture oldPicture = this.getById(picture.getId());
+        checkPictureAuth(oldPicture, loginUser);
         Long count = this.lambdaQuery()
                 .eq(Picture::getUploadPath, picture.getUploadPath())
                 .count();
@@ -422,6 +423,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         Integer reviewStatus = pictureQueryRequest.getReviewStatus();
         String reviewMessage = pictureQueryRequest.getReviewMessage();
         Long reviewerId = pictureQueryRequest.getReviewerId();
+        Long spaceId = pictureQueryRequest.getSpaceId();
         // 从多字段中搜索
         if (StrUtil.isNotBlank(searchText)) {
             // 需要拼接查询条件
@@ -443,6 +445,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         queryWrapper.eq(ObjUtil.isNotEmpty(reviewStatus), "review_status", reviewStatus);
         queryWrapper.like(StrUtil.isNotBlank(reviewMessage), "review_message", reviewMessage);
         queryWrapper.eq(ObjUtil.isNotEmpty(reviewerId), "reviewer_id", reviewerId);
+        queryWrapper.eq(ObjUtil.isNotEmpty(spaceId), "space_id", spaceId);
         // JSON 数组查询
         if (CollUtil.isNotEmpty(tags)) {
             for (String tag : tags) {
